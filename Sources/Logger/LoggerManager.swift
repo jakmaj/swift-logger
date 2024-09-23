@@ -21,6 +21,9 @@ public class LoggerManager {
     // Registered loggers
     private let loggers: [Logging]
 
+    private let metaInformationBundle: MetaInformationBundle?
+    private var dateOfLastLog: Date?
+
     private var subscriptions = Set<AnyCancellable>()
 
     /// `LoggerManager` initialization
@@ -35,6 +38,7 @@ public class LoggerManager {
     ) {
         loggers.forEach { $0.configure() }
         self.loggers = loggers
+        self.metaInformationBundle = metaInformationLoggerBundle
 
         if let applicationCallbackLoggerBundle = applicationCallbackLoggerBundle {
             let applicationCallbackLogger = ApplicationCallbackLogger(
@@ -47,11 +51,6 @@ public class LoggerManager {
                     self?.log(message, onLevel: level)
                 }
                 .store(in: &subscriptions)
-        }
-
-        if let metaInformationLoggerBundle = metaInformationLoggerBundle {
-            let metaInformation = metaInformationLoggerBundle.types.dictionary(fromBundle: metaInformationLoggerBundle.bundle)
-            log("Meta information: \(metaInformation)", onLevel: metaInformationLoggerBundle.level)
         }
     }
 
@@ -68,19 +67,33 @@ public class LoggerManager {
         inFunction function: String = #function,
         onLine line: Int = #line
     ) {
-        let logHeader = LogHeader(date: Date(), level: level, dateFormatter: DateFormatter.monthsDaysTimeFormatter)
+        let currentDate = Date()
+        let logHeader = LogHeader(date: currentDate, level: level, dateFormatter: DateFormatter.monthsDaysTimeFormatter)
         let logLocation = LogLocation(fileName: (file as NSString).lastPathComponent, function: function, line: line)
         let log = LogEntry(header: logHeader, location: logLocation, message: message)
         let availableLoggers = loggers.availableLoggers(forLevel: log.header.level)
-        
+
+        if !Calendar.current.isDate(currentDate, inSameDayAs: dateOfLastLog ?? .distantPast) {
+            dateOfLastLog = currentDate
+            logMetaInformation()
+        }
+
         serialQueue.async {
             availableLoggers.forEach { $0.log(log) }
         }
     }
-  
+
+    public func logMetaInformation() {
+        guard let metaInformationBundle else { return }
+
+        let metaInformation = metaInformationBundle.types.dictionary(fromBundle: metaInformationBundle.bundle)
+        log("Meta information: \(metaInformation)", onLevel: metaInformationBundle.level)
+    }
+
     public func deleteAllLogFiles() {
-        self.loggers.compactMap { $0 as? FileLogger }
+        loggers.compactMap { $0 as? FileLogger }
             .forEach { $0.deleteAllLogFiles() }
+        dateOfLastLog = nil
     }
 }
 

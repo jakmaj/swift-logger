@@ -291,19 +291,14 @@ public class FileLogger: Logging {
             currentLogFileNumber = 0
         }
 
-        let dateString = DateFormatter.dateFormatter.string(from:)
-
         let currentDate = Date()
 
-        let isSameDay = dateString(currentDate) == dateString(dateOfLastLog)
-
-        if isSameDay, currentWritableFileHandle == nil {
-            currentWritableFileHandle = try fileHandle(fileManager, currentLogFileUrl)
-
+        if Calendar.current.isDate(currentDate, inSameDayAs: dateOfLastLog) {
+            if currentWritableFileHandle == nil {
+                currentWritableFileHandle = try fileHandle(fileManager, currentLogFileUrl)
+            }
             return
         }
-
-        if isSameDay { return }
 
         currentLogFileNumber = (currentLogFileNumber + 1) % numberOfLogFiles
         dateOfLastLog = currentDate
