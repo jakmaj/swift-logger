@@ -9,6 +9,9 @@ import Foundation
 #if canImport(UIKit)
 import UIKit
 #endif
+#if canImport(WatchKit)
+import WatchKit
+#endif
 
 public enum MetaInformationType: String, CaseIterable {
     case identifier = "CFBundleIdentifier"
@@ -47,7 +50,9 @@ public enum MetaInformationType: String, CaseIterable {
             return modelType
 
         case .currentOSVersion:
-            #if canImport(UIKit)
+            #if canImport(WatchKit)
+            return WKInterfaceDevice.current().systemVersion
+            #elseif canImport(UIKit)
             return UIDevice.current.systemVersion
             #elseif os(OSX)
             return ProcessInfo.processInfo.operatingSystemVersionString

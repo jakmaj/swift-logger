@@ -7,7 +7,33 @@
 
 import Combine
 import Foundation
-#if canImport(UIKit)
+#if canImport(WatchKit)
+import WatchKit
+
+public enum ApplicationCallbackType: String, CaseIterable {
+    case didBecomeActive
+    case willResignActive
+    case didEnterBackground
+    case didFinishLaunching
+    case willEnterForeground
+
+    var notificationName: NSNotification.Name {
+        switch self {
+        case .didBecomeActive:
+            return WKApplication.didBecomeActiveNotification
+        case .willResignActive:
+            return WKApplication.willResignActiveNotification
+        case .didEnterBackground:
+            return WKApplication.didEnterBackgroundNotification
+        case .didFinishLaunching:
+            return WKApplication.didFinishLaunchingNotification
+        case .willEnterForeground:
+            return WKApplication.willEnterForegroundNotification
+        }
+    }
+}
+
+#elseif canImport(UIKit)
 import UIKit
 
 public enum ApplicationCallbackType: String, CaseIterable {
@@ -123,7 +149,7 @@ public class ApplicationCallbackLogger {
         self.level = level
         
         callbacks.forEach { callback in
-            #if canImport(UIKit)
+            #if canImport(UIKit) || canImport(WatchKit)
             let selector = Selector(callback.rawValue)
             #elseif os(OSX)
             let selector = #selector(logNotification(_:))
@@ -140,7 +166,7 @@ extension ApplicationCallbackLogger {
         messageSubject.send((level: level, message: message))
     }
 
-    #if canImport(UIKit)
+    #if canImport(UIKit) || canImport(WatchKit)
     @objc
     fileprivate func willTerminate() {
         log("\(#function)", onLevel: level)
